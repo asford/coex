@@ -1,9 +1,10 @@
-#!/usr/bin/env python
 import logging
 import os.path
 import shlex
+import shutil
 import subprocess
 from itertools import chain
+from pathlib import Path
 from typing import Set
 
 from conda._vendor.boltons.setutils import IndexedSet
@@ -15,25 +16,28 @@ from conda.models.channel import Channel, prioritize_channels
 from conda.models.records import PackageCacheRecord, PackageRecord
 from conda_env.specs.yaml_file import YamlFileSpec
 
-output_pkgs = "app/pkgs"
+logger = logging.getLogger(__name__)
 
+def pkg_env(environment_file: Path, coex_path: Path, cache_dir: Path) -> None:
 
-def main():
-    logging.basicConfig(level=logging.INFO)
-
-    spec = YamlFileSpec(filename="test_env.yml")
+    # Resolve environment file to dependencies
+    # Logic culled from conda-env
+    spec = YamlFileSpec(filename=str(environment_file))
     env = spec.environment
 
-    logging.info(env)
     logging.info(env.dependencies)
 
-    assert set(env.dependencies) == {"conda"}
+    assert set(env.dependencies) == {
+        "conda"
+    }, f"coex environments do not support pip dependencies: {env}"
 
     channel_urls = [chan for chan in env.channels if chan != "nodefaults"]
     if "nodefaults" not in env.channels:
         channel_urls.extend(context.channels)
     _channel_priority_map = prioritize_channels(channel_urls)
 
+    # Setup an dummpy environment resolution for install into /dev/null
+    # Execute fetch-and-extract operations for required conda packages
     prefix = "/dev/null"
 
     channels = IndexedSet(Channel(url) for url in _channel_priority_map)
@@ -45,10 +49,12 @@ def main():
     logging.info(transaction)
 
     transaction.download_and_extract()
+
+    # Resolve all the, now extracted, target packages in the filesystem
     fetcher: ProgressiveFetchExtract = transaction._pfe
 
     target_records: Set[PackageRecord] = set(fetcher.link_precs)
-    logging.info("target_records=%s", target_records)
+    logging.debug("target_records=%s", target_records)
 
     extracted: Set[PackageCacheRecord] = {
         next(
@@ -67,29 +73,27 @@ def main():
         for precord in target_records
     }
 
-    logging.info("extracted=%s", extracted)
+    logging.debug("extracted=%s", extracted)
 
+    # Repackage into a single-file .zst in the cache, then copy into the output
+    # package.
+    output_path = coex_path / "pkgs"
     for e in extracted:
-        extracted_dir = e.extracted_package_dir
-        basename = os.path.basename(e.extracted_package_dir)
-        outname = os.path.join(output_pkgs, basename + ".tar.zst")
+        extracted_dir = Path(e.extracted_package_dir)
+        pkgname = extracted_dir.name + ".tar.zst"
 
-        if os.path.exists(outname):
-            logging.info("Found package %s", outname)
-            continue
+        cache_dir.mkdir(parents=True, exist_ok=True)
 
-        os.makedirs(output_pkgs, exist_ok=True)
+        if not (cache_dir / pkgname).exists():
+            pkg_cmd = "tar -c -C {} {} | zstd -15 -T0 -f - -o {}".format(
+                shlex.quote(str(extracted_dir)),
+                " ".join(shlex.quote(f.name) for f in extracted_dir.iterdir()),
+                shlex.quote(str(cache_dir / pkgname)),
+            )
+            logging.info("packaging: %s", pkg_cmd)
+            subprocess.check_call(pkg_cmd, shell=True)
 
-        pkg_cmd = "tar -c -C {} {} | zstd -15 -T0 -f - -o {}".format(
-            shlex.quote(extracted_dir),
-            " ".join(shlex.quote(f) for f in os.listdir(extracted_dir)),
-            outname,
-        )
-        logging.info("packaging: %s", pkg_cmd)
-        subprocess.check_call(pkg_cmd, shell=True)
+        output_path.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(cache_dir / pkgname, output_path / pkgname)
 
     return extracted
-
-
-if __name__ == "__main__":
-    main()

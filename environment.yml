@@ -1,4 +1,8 @@
 dependencies:
   - python=3.7
-  - ipython
   - conda=4.7
+  - ipython
+  - zstd
+  - attrs=19.1
+  - conda-package-handling
+  - click=>7
