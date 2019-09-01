@@ -1,9 +1,0 @@
-#!/bin/bash
-#http://redsymbol.net/articles/unofficial-bash-strict-mode/
-
-set -euo pipefail
-IFS=$'\n\t'
-
-
-python3 -m zipapp app -p '/usr/bin/env python' -o app.coex
-./app.coex "$@"

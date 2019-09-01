@@ -1,24 +1,23 @@
-from __future__ import print_function
+# (c) 2012-2016 Anaconda, Inc. / https://anaconda.com
+# All Rights Reserved
+#
+# conda is distributed under the terms of the BSD 3-clause license.
+# http://opensource.org/licenses/BSD-3-Clause
+#
+# Extensions (c) 2019 coex authors
+"""Conda package install, cribbed from miniconda installer."""
 
-import argparse
-import fnmatch
-import glob
 import json
 import logging
 import os
-import os.path
-import pkgutil
 import re
-import pipes
+import shlex
+import glob
 import shutil
 import stat
-import subprocess
 import sys
-import zipfile
-import zipimport
-from distutils.util import strtobool
 
-# Conda unpacking, cribbed from anaconda installer
+logger = logging.getLogger(__name__)
 
 on_win = bool(sys.platform == "win32")
 
@@ -43,8 +42,6 @@ prefix_placeholder = (
 
 def read_has_prefix(path):
     """Return dict mapping filenames to tuples(placeholder, mode)"""
-
-    import shlex
 
     res = {}
     try:
@@ -124,9 +121,8 @@ def update_prefix(path, new_prefix, placeholder, mode):
 def post_extract(prefix):
     """Update package files post-extract.
 
-    Package has been extracted into env_path, leaving info/ and the package files.
-    Update prefix files, run 'post-link', creates the conda metadata, and
-    remove the info/ directory afterwards.
+    Package has been extracted into `prefix`, leaving `info/` and the package files.
+    Update prefix files, detect 'post-link', and remove `info/` directory.
     """
     info_dir = os.path.join(prefix, "info")
 
@@ -161,132 +157,3 @@ def post_extract(prefix):
         # subprocess.check_call(post_link, env=env, shell=True)
 
     shutil.rmtree(info_dir)
-
-
-class ZipPkgs:
-    def __init__(self, target):
-        self._zipfile = zipfile.ZipFile(target)
-        self.pkgs = fnmatch.filter(self._zipfile.namelist(), "pkgs/?*")
-
-    def open(self, name):
-        return self._zipfile.open(name)
-
-    def extract_cmd(self, name):
-        return "unzip -p %s %s" % (
-            pipes.quote(self._zipfile.filename),
-            pipes.quote(name),
-        )
-
-
-class FilePkgs:
-    def __init__(self, target):
-        self._path = target
-        self.pkgs = ["pkgs/" + n for n in os.listdir(os.path.join(target, "pkgs"))]
-
-    def open(self, name):
-        return open(self._path + "/" + name, "rb")
-
-    def extract_cmd(self, name):
-        return "cat %s" % (pipes.quote(os.path.join(self._path, name)))
-
-
-def get_pkgs():
-    loader = pkgutil.get_loader(__name__)
-    if isinstance(loader, zipimport.zipimporter):
-        return ZipPkgs(loader.archive)
-    else:
-        return FilePkgs(os.path.dirname(__file__))
-
-
-class COEXOptions(object):
-    work_dir = "/tmp"
-    cleanup = True
-    verbose = False
-    program_args = []
-
-    def __init__(self, args=None):
-        if args is None:
-            args = sys.argv[1:]
-
-        parser = argparse.ArgumentParser(
-            ".cex trampoline",
-            usage="Control variables for the conda executable packages",
-            formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-        )
-        parser.add_argument(
-            "--work_dir",
-            type=str,
-            help="Work directory to cex unpack and run. Override: COEX_WORK_DIR",
-            default=os.environ.get("COEX_WORK_DIR", self.work_dir),
-        )
-        parser.add_argument(
-            "--cleanup",
-            type=bool,
-            help="Remove environment after run. Override: COEX_CLEANUP",
-            default=os.environ.get("COEX_CLEANUP", self.cleanup),
-        )
-        parser.add_argument(
-            "--verbose",
-            type=bool,
-            help="Print COEX status to stderr. Override: COEX_VERBOSE",
-            default=os.environ.get("COEX_VERBOSE", self.verbose),
-        )
-
-        if strtobool(os.environ.get("COEX_ARGS", "false")):
-            if "--" in args:
-                split_idx = args.index("--")
-                cex_args = args[:split_idx]
-                program_args = args[split_idx:][1:]
-            else:
-                cex_args = args
-                program_args = []
-        else:
-            cex_args = []
-            program_args = args
-
-        parsed = parser.parse_args(cex_args)
-        for k, v in parsed.__dict__.items():
-            setattr(self, k, v)
-        self.program_args = program_args
-
-    def __repr__(self):
-        return "COEXOptions(%s)" % self.__dict__
-
-
-def main(options):
-    # type: (COEXOptions) -> None
-    if options.verbose:
-        logging.basicConfig(level=logging.INFO)
-
-    logging.info("options=%s", options)
-
-    run_dir = os.path.join(
-        options.work_dir, "%s_%i" % (os.path.basename(__file__), os.getpid())
-    )
-    logging.info("run_dir=%s", run_dir)
-    os.makedirs(run_dir)
-
-    conda_dir = os.path.join(run_dir, "conda")
-    logging.info("run_dir=%s", run_dir)
-    os.makedirs(conda_dir)
-
-    pkgs = get_pkgs()
-    logging.info("pkgs.pkgs=%s", pkgs.pkgs)
-
-    # Horrid hack, unpack python first so we can noarch packages
-    for p in sorted(pkgs.pkgs, key=lambda v: 0 if v.startswith("pkgs/python-") else 1):
-        extract = "%s | zstd -d | tar -xC %s" % (
-            pkgs.extract_cmd(p),
-            pipes.quote(conda_dir),
-        )
-
-        logging.info("extracting pkg=%s cmd=%s", p, extract)
-        subprocess.check_call(extract, shell=True)
-
-        logging.info("post_extract pkg=%s prefix=%s", p, conda_dir)
-        post_extract(conda_dir)
-
-
-if __name__ == "__main__":
-    options = COEXOptions()
-    main(options)

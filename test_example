@@ -1,0 +1,29 @@
+#!/bin/bash
+#http://redsymbol.net/articles/unofficial-bash-strict-mode/
+
+set -euo pipefail
+IFS=$'\n\t'
+
+set -x
+
+cat > coex_environment.yml <<EOF
+dependencies:
+  - python=3.7.4
+  - numpy=1.16.4
+EOF
+
+cat coex_environment.yml
+
+python -m coex create -f coex_environment.yml --entrypoint python -o python.coex
+
+rm -rf /dev/shm/coex
+mkdir -p /dev/shm/coex
+
+cp python.coex /dev/shm/coex
+
+export COEX_LOG_LEVEL=INFO
+
+time ./python.coex -c 'import sys; print(sys.version); import numpy; print(numpy.version.version)'
+time /dev/shm/coex/python.coex -c 'import sys; print(sys.version); import numpy; print(numpy.version.version)'
+
+rm -rf /dev/shm/coex

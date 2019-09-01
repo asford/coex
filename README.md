@@ -7,30 +7,17 @@ deployment as simple as `cp`. `coex` executables are hermetic and
 language agnostic, allowing applications to use arbitrary conda-based
 environments with minimal run-time external dependencies.
 
-## Installation
+## TLDR
 
-It's recommended to install `coex` in the root conda environment - the
-`conda coex` command will then be available in all sub-environments.
-
-### From source:
-
-coex is available on github and can be installed from source:
-
-```
-pip install git+https://github.com/asford/coex.git
-```
-
-## Examples
-
-To package an `environment.yml` with an `python` entrypoint:
+Package an environment `.yml` with an `python` entrypoint:
 
 ```bash
-$ echo > environment.yml <<EOF
+$ cat > coex_environment.yml <<EOF
 dependencies:
   - python=3.7.4
   - numpy=1.16.4
 EOF
-$ coex create -f environment.yml --entrypoint python -o python.coex
+$ python -m coex create -f coex_environment.yml --entrypoint python -o python.coex
 ```
 
 ...and execute:
@@ -43,6 +30,19 @@ Type "help", "copyright", "credits" or "license" for more information.
 >>> import numpy
 >>> numpy.version.version
 '1.16.4'
+```
+
+## Installation
+
+It's recommended to install `coex` in the root conda environment - the
+`conda coex` command will then be available in all sub-environments.
+
+### From source:
+
+coex is available on github and can be installed from source:
+
+```
+pip install git+https://github.com/asford/coex.git
 ```
 
 ## FAQs
@@ -88,13 +88,14 @@ This doesn't, but should, include:
 
 * `post-link` package scripts.
 * Build and execution on macos.
+* Custom application data.
 
 This doesn't include:
 
 * Cross platform executables. coex files are akin to static binaries built
   for a target platform.
 * Cross-executable resource sharing. coex files are hermetic, replicating
-  required dependencies at the cost of executable size.
+  required dependencies at the cost of increased package size.
 
 ### Why not use...
 
@@ -109,12 +110,12 @@ This doesn't include:
 
 * XAR?
 
-  [XAR](https://github.com/facebookincubator/xar) is a superior solution
-  for deploying multiple files as a self-contained executable, but
-  requires a SquashFS filesystem driver. This prevents deployment to
-  container-based architectures and environments without support for the
-  XAR driver. coex can execute anywhere with a minimal python (2.7+)
-  installation.
+  [XAR](https://github.com/facebookincubator/xar) has superior (a) startup
+  time and (b) cross-package data sharing for deploying multiple files as
+  a self-contained executable, but requires a SquashFS filesystem driver.
+  This prevents deployment to container-based architectures and
+  environments without support for the XAR driver. coex can execute
+  anywhere with a minimal python (2.7+) installation.
 
 * PEX? 
 
