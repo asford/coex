@@ -12,6 +12,7 @@ from distutils.util import strtobool
 
 from coex_bootstrap.activate import activate_env
 from coex_bootstrap.config import COEXBootstrapConfig
+from coex_bootstrap.binaries import COEXBootstrapBinaries
 from coex_bootstrap.install import post_extract
 from coex_bootstrap.unpack import get_pkgs
 
@@ -107,8 +108,12 @@ def main(options):
     logging.info("run_dir=%s", run_dir)
     os.makedirs(conda_dir)
 
+
+    with Timer("get_binaries"):
+        coex_binaries = COEXBootstrapBinaries.unpack(run_dir, __name__)
+
     with Timer("get_pkgs"):
-        pkgs = get_pkgs()
+        pkgs = get_pkgs(coex_binaries)
     logging.debug("pkgs=%s", pkgs)
 
     with Timer("install"):
@@ -116,7 +121,7 @@ def main(options):
         for p in sorted(
             pkgs, key=lambda v: 0 if v.name.startswith("pkgs/python-") else 1
         ):
-            p.extract(conda_dir)
+            p.extract(coex_binaries, conda_dir)
 
             logging.debug("post_extract pkg=%s prefix=%s", p, conda_dir)
             post_extract(conda_dir)

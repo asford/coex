@@ -10,6 +10,7 @@ import attr
 import click
 
 import coex.bootstrap
+from coex.bootstrap.coex_bootstrap.binaries import COEXBootstrapBinaries
 from coex.bootstrap.coex_bootstrap.config import COEXBootstrapConfig
 from coex.pkg_env import pkg_env
 
@@ -67,19 +68,24 @@ def create(config: COEXConfig, env_file, entrypoint, output):
         # Copy the bootstrap template into coex src
         bootstrap_template = Path(coex.bootstrap.__file__).parent
         logging.info("setup bootstrap bootstrap_path=%s", bootstrap_template)
-        shutil.copytree(str(bootstrap_template), str(build_root))
+        shutil.copytree(
+            str(bootstrap_template),
+            str(build_root),
+            ignore=shutil.ignore_patterns("*.pyc", "__pycache__"),
+        )
+
+        # Copy zstd binary into bootstrap bin
+        COEXBootstrapBinaries.copy_to(build_root)
 
         # Write a bootstrap configuration object into
         bootstrap_config = COEXBootstrapConfig(entrypoint=entrypoint)
 
         with open(build_root / "coex_bootstrap.json", "w") as config_out:
-            json.dump(bootstrap_config.as_dict(), config_out,  indent=2)
+            json.dump(bootstrap_config.as_dict(), config_out, indent=2)
 
         # Copy env pkgs into coex src
         pkg_env(env_file, build_root, config.cache / "pkgs")
 
         # Create zipapp archive
         logging.info("create_archive source=%s target=%s", build_root, output)
-        zipapp.create_archive(
-            build_root, output, interpreter="/usr/bin/env python"
-        )
+        zipapp.create_archive(build_root, output, interpreter="/usr/bin/env python")

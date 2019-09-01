@@ -19,8 +19,9 @@ class ZipPkgs(object):
     def open(self, name):
         return self._zipfile.open(name)
 
-    def extract_cmd(self, name):
-        return "unzip -p %s %s" % (
+    def extract_cmd(self, coex_binaries, name):
+        return "%s -p %s %s" % (
+            pipes.quote(coex_binaries.unzip),
             pipes.quote(self._zipfile.filename),
             pipes.quote(name),
         )
@@ -34,7 +35,7 @@ class FilePkgs(object):
     def open(self, name):
         return open(self._path + "/" + name, "rb")
 
-    def extract_cmd(self, name):
+    def extract_cmd(self, coex_binaries, name):
         return "cat %s" % (pipes.quote(os.path.join(self._path, name)))
 
 
@@ -44,10 +45,11 @@ class PkgHandle(object):
         self.name = name
         self.extract_cmd = extract_cmd
 
-    def extract(self, prefix_dir):
+    def extract(self, coex_binaries, prefix_dir):
 
-        extract = "%s | zstd -d | tar -xC %s" % (
+        extract = "%s | %s -d | tar -xC %s" % (
             self.extract_cmd,
+            pipes.quote(coex_binaries.zstd),
             pipes.quote(prefix_dir),
         )
 
@@ -55,7 +57,7 @@ class PkgHandle(object):
         subprocess.check_call(extract, shell=True)
 
 
-def get_pkgs():
+def get_pkgs(coex_binaries):
     """Get pkgs handles for current archive."""
     # type: () -> list
 
@@ -65,4 +67,4 @@ def get_pkgs():
     else:
         pkg_src = FilePkgs(os.path.dirname(__file__))
 
-    return [PkgHandle(p, pkg_src.extract_cmd(p)) for p in pkg_src.pkgs]
+    return [PkgHandle(p, pkg_src.extract_cmd(coex_binaries, p)) for p in pkg_src.pkgs]
