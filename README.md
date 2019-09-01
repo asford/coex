@@ -17,12 +17,16 @@ dependencies:
   - python=3.7.4
   - numpy=1.16.4
 EOF
+
 $ python -m coex create -f coex_environment.yml --entrypoint python -o python.coex
 ```
 
 ...and execute:
 
-```
+```bash
+$ ls -Ggh python.coex
+-rwxr--r-- 1 245M Sep  1 20:22 python.coex
+
 $ ./python.coex
 Python 3.7.4 (default, Aug 13 2019, 20:35:49)
 [GCC 7.3.0] :: Anaconda, Inc. on linux
@@ -61,14 +65,14 @@ packages into a conda environment, it then activates this environment and
 executes the entrypoint program.
 
 By pre-calculating the target environment and using fast zstd compression,
-coex is able to *very quickly* unpack the target environment at run time.
-This results in an minimal, but unavoidable, startup delay.
+coex is able to quickly unpack the target environment at run time. This
+results in an short, but unavoidable, startup delay.
 
 By including bootstrap components in a self-extracting archive, coex files
-*only* depend on a system python interpreter and minimal system libraries.
+depend only on a system `python` (2.7+ or 3) and minimal system libraries.
 The application is executed entirely via hermetically included components.
-For example, full pytorch & python3.7 based coex application can be
-executed in a host environment depending only the system python 2.7 and
+For example, a full pytorch & python3.7 based coex application can be
+executed in a host environment depending only the system `python2.7` and
 cuda driver.
 
 ### What does it support?
@@ -106,7 +110,7 @@ This doesn't include:
   a container build process and runtime. coex can quickly capture a conda
   environment to be executed anywhere, depending only on system libraries
   and a minimal python (2.7+) installation. coex files can be trivially
-  encapsulated for deployment onto container-based architectures. 
+  encapsulated for deployment onto container-based architectures.
 
 * XAR?
 
@@ -117,14 +121,14 @@ This doesn't include:
   environments without support for the XAR driver. coex can execute
   anywhere with a minimal python (2.7+) installation.
 
-* PEX? 
+* PEX?
 
   [PEX](https://github.com/pantsbuild/pex) and
   [subpar](https://github.com/google/subpar) are tightly focused on
   packaging python executables and do not provide isolation from the
   system python environment. coex supports any application language, as
   long as your dependencies can be captured via conda.
-  
+
 * conda-pack?
 
   [conda-pack](https://conda.github.io/conda-pack/) packages conda
