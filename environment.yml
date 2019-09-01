@@ -6,3 +6,4 @@ dependencies:
   - attrs=19.1
   - conda-package-handling
   - click=>7
+  - unzip
