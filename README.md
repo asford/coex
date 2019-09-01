@@ -38,16 +38,26 @@ Type "help", "copyright", "credits" or "license" for more information.
 
 ## Installation
 
-It's recommended to install `coex` in the root conda environment - the
-`conda coex` command will then be available in all sub-environments.
+~~It's recommended to install `coex` in the root conda environment - the
+`conda coex` command will then be available in all sub-environments.~~
 
-### From source:
+### Development
 
-coex is available on github and can be installed from source:
+coex can be run from via a development checkout using the provided conda
+environment:
 
+```bash
+$ git clone https://github.com/asford/coex.git
+$ cd coex
+$ conda env create -f environment.yml -n coex
+$ conda activate coex
+(coex) $ python -m coex --help
 ```
-pip install git+https://github.com/asford/coex.git
-```
+
+### ~~From source:~~
+
+~~coex is available on github and can be installed from source:
+`pip install git+https://github.com/asford/coex.git`~~
 
 ## FAQs
 
