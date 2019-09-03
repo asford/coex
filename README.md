@@ -96,12 +96,11 @@ This currently includes:
 * Prefix handling during package install.
 * Platform-specific packages.
 * `noarch:python` packages.
-* Build and execution on linux-64.
+* Build and execute on linux and macos.
 
 This doesn't, but should, include:
 
 * `post-link` package scripts.
-* Build and execution on macos.
 * Custom application data.
 
 This doesn't include:
