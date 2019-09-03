@@ -41,19 +41,6 @@ Type "help", "copyright", "credits" or "license" for more information.
 ~~It's recommended to install `coex` in the root conda environment - the
 `conda coex` command will then be available in all sub-environments.~~
 
-### Development
-
-coex can be run from via a development checkout using the provided conda
-environment:
-
-```bash
-$ git clone https://github.com/asford/coex.git
-$ cd coex
-$ conda env create -f environment.yml -n coex
-$ conda activate coex
-(coex) $ python -m coex --help
-```
-
 ### ~~From source:~~
 
 ~~coex is available on github and can be installed from source:
@@ -144,3 +131,16 @@ This doesn't include:
   environments as redistributable archives, rather than creating
   self-contained executables. coex executables can be unpacked for
   environment redeployment is a similar fashion.
+
+## Development
+
+coex uses [tox](https://tox.readthedocs.io/en/latest/) and
+[tox-conda](https://github.com/tox-dev/tox-conda) to manage test and
+development environments. First, install `conda>=4.6` , `tox>=13.3` and
+`tox-conda>=0.2.0` by whatever means necessary (eg. `conda env update -n
+base -f tox.environment.yml`).
+
+To init a dev environment: `tox --devenv ./.conda -e py37-conda47`
+and activate via: `conda activate ./.conda`
+
+To run all tests: `tox`
