@@ -1,0 +1,4 @@
+dependencies:
+  - conda>=4.6
+  - conda-forge::tox>=3.13
+  - conda-forge::tox-conda>=0.2
