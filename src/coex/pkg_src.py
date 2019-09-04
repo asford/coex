@@ -1,14 +1,15 @@
-from typing import List
-
-from pathlib import Path
-import subprocess
 import logging
 import platform
+import subprocess
+from pathlib import Path
+from typing import List
 
 logger = logging.getLogger(__name__)
 
 
 def pkg_src(sources: List[str], coex_path: Path) -> None:
+    """Compress usr sources into coex /srcs."""
+
     if not sources:
         logger.info("no sources")
         return

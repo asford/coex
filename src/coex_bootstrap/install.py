@@ -7,12 +7,16 @@
 # Extensions (c) 2019 coex authors
 """Conda package install, cribbed from miniconda installer."""
 
+try:
+    import typing
+except ImportError:
+    pass
+import glob
 import json
 import logging
 import os
 import re
 import shlex
-import glob
 import shutil
 import stat
 import sys
@@ -41,7 +45,16 @@ prefix_placeholder = (
 
 
 def read_has_prefix(path):
-    """Return dict mapping filenames to tuples(placeholder, mode)"""
+    # type: (str) -> typing.Dict[str, typing.Tuple[str, str]]
+    """Read info/has_prefix file.
+
+    Args:
+        path: has_prefix file path.
+
+    Returns:
+        Mapping of {filename : (placeholder, mode)}
+
+    """
 
     res = {}
     try:
@@ -59,14 +72,24 @@ def read_has_prefix(path):
 
 
 class PaddingError(Exception):
+    """Binary prefix replacement failed, insufficient padding available."""
+
     pass
 
 
 def binary_replace(data, a, b):
-    """
+    # type: (bytes, bytes, bytes) -> bytes
+    """Perform binary prefix replacement.
+
     Perform a binary replacement of `data`, where the placeholder `a` is
     replaced with `b` and the remaining string is padded with null characters.
     All input arguments are expected to be bytes objects.
+
+    Raises:
+        PaddingError: Insufficient padding available for replacement.
+
+    Returns: prefix-replaced data
+
     """
 
     def replace(match):
@@ -119,10 +142,15 @@ def update_prefix(path, new_prefix, placeholder, mode):
 
 
 def post_extract(prefix):
+    # type: (str) -> None
     """Update package files post-extract.
 
     Package has been extracted into `prefix`, leaving `info/` and the package files.
     Update prefix files, detect 'post-link', and remove `info/` directory.
+
+    Args:
+        prefix: Conda env prefix post package extraction.
+
     """
     info_dir = os.path.join(prefix, "info")
 
