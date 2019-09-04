@@ -30,7 +30,7 @@ class COEXBootstrapConfig(object):
     def read_from(cls, prefix=None, package=None):
         # type: (str, str) -> COEXBootstrapConfig
         if prefix and not package:
-            config = open(os.path.join(prefix, "coex_bootstrap.json"), "r").read()
+            config = open(os.path.join(prefix, "coex_bootstrap.json"), "rb").read()
         elif package and not prefix:
             config = pkgutil.get_data(package, "coex_bootstrap.json")
         else:
@@ -39,4 +39,4 @@ class COEXBootstrapConfig(object):
                 dict(prefix=prefix, package=package),
             )
 
-        return cls.from_dict(json.loads(config))
+        return cls.from_dict(json.loads(config.decode("utf-8")))
