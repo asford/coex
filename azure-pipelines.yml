@@ -30,30 +30,30 @@ jobs:
 
   - bash: |
       source activate tox
+      tox -e lint
+    displayName: Tox lint
+    condition: succeededOrFailed()
+
+  - bash: |
+      source activate tox
       tox -e py37-conda47
     displayName: Tox py37-conda47
-    continueOnError: true
+    condition: succeededOrFailed()
 
   - bash: |
       source activate tox
       tox -e py37-conda46
     displayName: Tox py37-conda46
-    continueOnError: true
+    condition: succeededOrFailed()
     
   - bash: |
       source activate tox
       tox -e py36-conda47
     displayName: Tox py36-conda47
-    continueOnError: true
+    condition: succeededOrFailed()
 
   - bash: |
       source activate tox
       tox -e py36-conda46
     displayName: Tox py36-conda46
-    continueOnError: true
-
-  - bash: |
-      source activate tox
-      tox -e lint
-    displayName: Tox lint
-    continueOnError: true
+    condition: succeededOrFailed()
