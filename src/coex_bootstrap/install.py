@@ -7,12 +7,12 @@
 # Extensions (c) 2019 coex authors
 """Conda package install, cribbed from miniconda installer."""
 
+import glob
 import json
 import logging
 import os
 import re
 import shlex
-import glob
 import shutil
 import stat
 import sys

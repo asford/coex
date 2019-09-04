@@ -1,11 +1,11 @@
 import logging
 import os.path
+import platform
 import shutil
 import subprocess
 from itertools import chain
 from pathlib import Path
 from typing import Set
-import platform
 
 from conda._vendor.boltons.setutils import IndexedSet
 from conda.base.context import context

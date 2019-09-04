@@ -1,8 +1,8 @@
-import textwrap
-import pathlib
-import subprocess
 import json
 import os
+import pathlib
+import subprocess
+import textwrap
 
 _test_versions = dict(python="3.6.3", numpy="1.16.3")
 _test_env = textwrap.dedent(

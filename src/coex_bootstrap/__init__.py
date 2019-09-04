@@ -1,23 +1,23 @@
 from __future__ import print_function
 
-from collections import defaultdict
 import argparse
 import logging
 import os
 import os.path
+import pkgutil
 import shutil
 import subprocess
 import sys
 import time
-from distutils.util import strtobool
 import zipimport
-import pkgutil
+from collections import defaultdict
+from distutils.util import strtobool
 
 from coex_bootstrap.activate import activate_env
-from coex_bootstrap.config import COEXBootstrapConfig
 from coex_bootstrap.binaries import COEXBootstrapBinaries
+from coex_bootstrap.config import COEXBootstrapConfig
 from coex_bootstrap.install import post_extract
-from coex_bootstrap.unpack import zip_pkgs, file_pkgs
+from coex_bootstrap.unpack import file_pkgs, zip_pkgs
 
 try:
     import typing

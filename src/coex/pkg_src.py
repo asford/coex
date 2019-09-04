@@ -1,9 +1,8 @@
-from typing import List
-
-from pathlib import Path
-import subprocess
 import logging
 import platform
+import subprocess
+from pathlib import Path
+from typing import List
 
 logger = logging.getLogger(__name__)
 

@@ -10,10 +10,10 @@ import attr
 import click
 
 import coex_bootstrap
-from coex_bootstrap.binaries import COEXBootstrapBinaries
-from coex_bootstrap.config import COEXBootstrapConfig
 from coex.pkg_env import pkg_env
 from coex.pkg_src import pkg_src
+from coex_bootstrap.binaries import COEXBootstrapBinaries
+from coex_bootstrap.config import COEXBootstrapConfig
 
 logger = logging.getLogger(__name__)
 

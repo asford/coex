@@ -1,9 +1,9 @@
+import logging
 import os
 import os.path
 import pkgutil
 import shutil
 import stat
-import logging
 import subprocess
 import sys
 

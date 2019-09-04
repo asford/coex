@@ -1,6 +1,8 @@
 # COEX
 
 [![Build Status](https://dev.azure.com/asewallford/asewallford/_apis/build/status/asford.coex?branchName=master)](https://dev.azure.com/asewallford/asewallford/_build/latest?definitionId=1&branchName=master)
+[![Code Style: Black](https://github.com/psf/black)](https://img.shields.io/badge/code%20style-black-000000.svg)
+
 
 coex is a utility for generating coex (COnda EXecutable) files, which are
 self-contained, executable conda environments. coex is an expansion of the
