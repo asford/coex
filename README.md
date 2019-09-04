@@ -1,5 +1,7 @@
 # COEX
 
+[![Build Status](https://dev.azure.com/asewallford/asewallford/_apis/build/status/asford.coex?branchName=master)](https://dev.azure.com/asewallford/asewallford/_build/latest?definitionId=1&branchName=master)
+
 coex is a utility for generating coex (COnda EXecutable) files, which are
 self-contained, executable conda environments. coex is an expansion of the
 ideas in [pex](https://github.com/pantsbuild/pex) and makes application
