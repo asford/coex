@@ -5,6 +5,7 @@ import subprocess
 from itertools import chain
 from pathlib import Path
 from typing import Set
+import platform
 
 from conda._vendor.boltons.setutils import IndexedSet
 from conda.base.context import context
@@ -86,8 +87,15 @@ def pkg_env(environment_file: Path, coex_path: Path, cache_dir: Path) -> None:
 
         if not (cache_dir / pkgname).exists():
             pkg_cmd = (
-                # tar filtered through multithreaded zstd
-                ["tar", "--use-compress-program", "zstd -T0"]
+                # tar filtered through zstd
+                # Seeing errors on macos 10.13 image when using --use-compress-program
+                # with arguments, consider (a) installing conda-forge tar or (b) using
+                # a wrapper script if zstd arguments are needed
+                [
+                    "tar",
+                    "--use-compress-program",
+                    "zstd -T0" if platform.system() != "Darwin" else "zstd",
+                ]
                 # write to archive file
                 + ["-f", str(cache_dir / pkgname)]
                 # chdir to extracted package directory
