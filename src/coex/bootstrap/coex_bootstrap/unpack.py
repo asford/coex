@@ -1,42 +1,42 @@
 import fnmatch
+import glob
 import logging
 import os
 import os.path
-import pipes
-import pkgutil
 import subprocess
 import zipfile
-import zipimport
 
 logger = logging.getLogger(__name__)
 
 
 class ZipPkgs(object):
-    def __init__(self, target):
+    def __init__(self, target, fnmatch_pattern):
+        logger.debug("ZipPkgs target=%s fnmatch_pattern=%s")
         self._zipfile = zipfile.ZipFile(target)
-        self.pkgs = fnmatch.filter(self._zipfile.namelist(), "pkgs/?*")
+        self.names = fnmatch.filter(self._zipfile.namelist(), fnmatch_pattern)
 
     def open(self, name):
         return self._zipfile.open(name)
 
     def extract_cmd(self, coex_binaries, name):
-        return "%s -p %s %s" % (
-            pipes.quote(coex_binaries.unzip),
-            pipes.quote(self._zipfile.filename),
-            pipes.quote(name),
-        )
+        return [coex_binaries.unzip, "-p", self._zipfile.filename, name]
+
+    def pkgs(self, coex_binaries):
+        return [PkgHandle(p, self.extract_cmd(coex_binaries, p)) for p in self.names]
 
 
 class FilePkgs(object):
-    def __init__(self, target):
+    def __init__(self, target, glob_pattern):
+        _full_glob = os.path.join(target, glob_pattern)
+        logger.debug("FilePkgs target=%s glob_pattern=%s _full_glob=%s")
         self._path = target
-        self.pkgs = ["pkgs/" + n for n in os.listdir(os.path.join(target, "pkgs"))]
-
-    def open(self, name):
-        return open(self._path + "/" + name, "rb")
+        self.names = [os.path.relpath(p, target) for p in glob.glob(_full_glob)]
 
     def extract_cmd(self, coex_binaries, name):
-        return "cat %s" % (pipes.quote(os.path.join(self._path, name)))
+        return ["cat", os.path.join(self._path, name)]
+
+    def pkgs(self, coex_binaries):
+        return [PkgHandle(p, self.extract_cmd(coex_binaries, p)) for p in self.names]
 
 
 class PkgHandle(object):
@@ -47,24 +47,23 @@ class PkgHandle(object):
 
     def extract(self, coex_binaries, prefix_dir):
 
-        extract = "%s | %s -d | tar -xC %s" % (
-            self.extract_cmd,
-            pipes.quote(coex_binaries.zstd),
-            pipes.quote(prefix_dir),
+        untar_cmd = (
+            ["tar"]
+            + ["--use-compress-program", coex_binaries.zstd]
+            + ["-x", "-C", prefix_dir]
         )
 
-        logging.debug("extract pkg=%s cmd=%s", self.name, extract)
-        subprocess.check_call(extract, shell=True)
+        logging.debug(
+            "extract pkg=%s extract=%r untar=%r", self.name, self.extract_cmd, untar_cmd
+        )
 
+        extract = subprocess.Popen(self.extract_cmd, stdout=subprocess.PIPE, bufsize=-1)
+        untar = subprocess.Popen(untar_cmd, stdin=extract.stdout, bufsize=-1)
 
-def get_pkgs(coex_binaries):
-    """Get pkgs handles for current archive."""
-    # type: () -> list
+        extract.wait()
+        if extract.returncode:
+            raise subprocess.CalledProcessError(extract.returncode, extract.args)
 
-    loader = pkgutil.get_loader(__name__)
-    if isinstance(loader, zipimport.zipimporter):
-        pkg_src = ZipPkgs(loader.archive)
-    else:
-        pkg_src = FilePkgs(os.path.dirname(__file__))
-
-    return [PkgHandle(p, pkg_src.extract_cmd(coex_binaries, p)) for p in pkg_src.pkgs]
+        untar.wait()
+        if untar.returncode:
+            raise subprocess.CalledProcessError(extract.returncode, extract.args)
