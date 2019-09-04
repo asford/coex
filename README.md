@@ -168,7 +168,14 @@ development environments. First, install `conda>=4.6` , `tox>=13.3` and
 `tox-conda>=0.2.0` by whatever means necessary (eg. `conda env update -n
 base -f tox.environment.yml`).
 
-To init a dev environment: `tox --devenv ./.conda -e py37-conda47`
-and activate via: `conda activate ./.conda`
+Initialize the dev env under `.tox/dev` and register pre-commit hooks via:
 
-To run all tests: `tox`
+```bash
+$ tox -e dev
+```
+
+The dev env can be activated via `conda activate .tox/dev`, or via
+[`direnv`](https://direnv.net/) and the included `.envrc` file.
+
+Tests under `tests` are run via `pytest` in the dev env, the full multi-version
+test matrix is run via `tox`.
