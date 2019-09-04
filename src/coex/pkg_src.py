@@ -8,6 +8,8 @@ logger = logging.getLogger(__name__)
 
 
 def pkg_src(sources: List[str], coex_path: Path) -> None:
+    """Compress usr sources into coex /srcs."""
+
     if not sources:
         logger.info("no sources")
         return

@@ -20,7 +20,18 @@ logger = logging.getLogger(__name__)
 
 
 def pkg_env(environment_file: Path, coex_path: Path, cache_dir: Path) -> None:
+    """Resolve, fetch, and repackage conda env into coex /pkgs directory.
 
+    Resolve conda environment file to a specific package list via conda solver,
+    then fetch and unpack target packages. Repack into .coex package data in
+    cache_dir or reuse if pre-packed, and assemble into /pkgs under coex_path.
+
+    Args:
+        environment_file: Standard conda env file, can not contain pip deps.
+        coex_path: Output coex build path.
+        cache_dir: Coex build cache directory.
+
+    """
     # Resolve environment file to dependencies
     # Logic culled from conda-env
     spec = YamlFileSpec(filename=str(environment_file))
@@ -108,5 +119,3 @@ def pkg_env(environment_file: Path, coex_path: Path, cache_dir: Path) -> None:
 
         output_path.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(cache_dir / pkgname, output_path / pkgname)
-
-    return extracted

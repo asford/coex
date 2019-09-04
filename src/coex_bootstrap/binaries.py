@@ -1,25 +1,35 @@
+try:
+    import typing
+except ImportError:
+    pass
+
 import logging
 import os
 import os.path
 import pkgutil
 import shutil
 import stat
-import subprocess
 import sys
 
 logger = logging.getLogger(__name__)
 
 S_IXALL = stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
 
-# Backported which from python 3
-def which(cmd, mode=os.F_OK | os.X_OK, path=None):
-    """Given a command, mode, and a PATH string, return the path which
-    conforms to the given mode on the PATH, or None if there is no such
-    file.
 
-    `mode` defaults to os.F_OK | os.X_OK. `path` defaults to the result
-    of os.environ.get("PATH"), or can be overridden with a custom search
-    path.
+def which(cmd, mode=os.F_OK | os.X_OK, path=None):
+    # type: (str, int, typing.Optional[str]) -> typing.Optional[str] # noqa: I
+    """Find path of cmd, or None if not found.
+
+    Backported python3 shutil.which. Given a command, mode, and a PATH string,
+    return the path which conforms to the given mode on the PATH, or None if
+    there is no such file.
+
+    Args:
+        cmd: Command name.
+        mode: Check for given mode, defaults to os.F_OK | os.X_OK.
+        path: Check given search path, defaults to os.environ.get("PATH")
+
+    Returns: Resolved cmd path, or None
 
     """
     # Check that a given file can be accessed with the correct mode.
@@ -40,12 +50,13 @@ def which(cmd, mode=os.F_OK | os.X_OK, path=None):
         path = os.environ.get("PATH", os.defpath)
     if not path:
         return None
-    path = path.split(os.pathsep)
+
+    paths = path.split(os.pathsep)  # type: typing.List[str]
 
     if sys.platform == "win32":
         # The current directory takes precedence on Windows.
         if os.curdir not in path:
-            path.insert(0, os.curdir)
+            paths.insert(0, os.curdir)
 
         # PATHEXT is necessary to check on Windows.
         pathext = os.environ.get("PATHEXT", "").split(os.pathsep)
@@ -62,8 +73,8 @@ def which(cmd, mode=os.F_OK | os.X_OK, path=None):
         # what file suffixes are executable, so just pass on cmd as-is.
         files = [cmd]
 
-    seen = set()
-    for dir in path:
+    seen = set()  # type: typing.Set[str]
+    for dir in paths:
         normdir = os.path.normcase(dir)
         if normdir not in seen:
             seen.add(normdir)
@@ -75,15 +86,18 @@ def which(cmd, mode=os.F_OK | os.X_OK, path=None):
 
 
 class COEXBootstrapBinaries(object):
+    """Set of binaries required for COEX bootstrap."""
+
     required = ["zstd", "unzip", "tar"]
 
     def __init__(self, zstd, unzip, tar):
         # type: (str, str, str) -> None
+        """Init with executable paths."""
         self.zstd = zstd
         self.unzip = unzip
         self.tar = tar
 
-    def __repr__(self):
+    def __repr__(self):  # noqa: D
         # type: () -> str
         return (
             "COEXBootstrapBinaries("
@@ -96,17 +110,33 @@ class COEXBootstrapBinaries(object):
     @classmethod
     def copy_to(cls, prefix):
         # type: (str) -> None
+        """Pack binaries from current environment into coex prefix."""
+
         logger.debug("copy_to prefix=%r", prefix)
         bindir = os.path.join(prefix, "bin")
         if not os.path.exists(bindir):
             os.makedirs(bindir)
 
         for b in cls.required:
-            shutil.copy(shutil.which(b), bindir)
+            bin_path = shutil.which(b)
+            if bin_path is None:
+                raise ValueError("Unable to resolve binary: %s" % b)
+            shutil.copy(bin_path, bindir)
 
     @classmethod
-    def unpack(cls, prefix=None, package=None):
+    def unpack(cls, prefix, package):
         # type: (str, str) -> COEXBootstrapBinaries
+        """Unpack binaries from coex into run prefix.
+
+        Args:
+            prefix: coex run prefix
+            package: coex package, zipped or unpacked.
+
+        Returns:
+            Path of unpacked binaries in prefix.
+
+        """
+
         logger.info("unpack prefix=%r package=%r", prefix, package)
         bindir = os.path.join(prefix, "bin")
         if not os.path.exists(bindir):

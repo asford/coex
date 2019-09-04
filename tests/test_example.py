@@ -1,8 +1,8 @@
 import json
-import os
 import pathlib
 import subprocess
 import textwrap
+import typing
 
 _test_versions = dict(python="3.6.3", numpy="1.16.3")
 _test_env = textwrap.dedent(
@@ -32,7 +32,7 @@ _dump_version = textwrap.dedent(
     """
 )
 
-_bootstrap_run_envs = {
+_bootstrap_run_envs: typing.Dict[str, typing.List[str]] = {
     "system": [],
     "py27": ["python=2.7"],
     "py35": ["python=3.5"],
@@ -41,6 +41,7 @@ _bootstrap_run_envs = {
 
 
 def test_example_cli(tmp_path: pathlib.Path):
+    """Verify README.MD example via cli."""
     tmp_path.cwd
     (tmp_path / "coex_environment.yml").open("w").write(_test_env)
 
@@ -66,7 +67,7 @@ def test_example_cli(tmp_path: pathlib.Path):
         run_env["COEX_LOG_LEVEL"] = "DEBUG"
         run_env["PATH"] = (
             f"./conda.{sname}/bin:"
-            + subprocess.check_output("echo $PATH", shell=True, env=dict()).decode()
+            + subprocess.check_output("echo $PATH", shell=True, env=None).decode()
         )
 
         subprocess.check_call(
@@ -93,6 +94,7 @@ def test_example_cli(tmp_path: pathlib.Path):
 
 
 def test_example_archive(tmp_path: pathlib.Path):
+    """Test README.md example with embedded entrypoint."""
     tmp_path.cwd
     (tmp_path / "coex_environment.yml").open("w").write(_test_env)
 
@@ -125,7 +127,7 @@ def test_example_archive(tmp_path: pathlib.Path):
         run_env["COEX_LOG_LEVEL"] = "DEBUG"
         run_env["PATH"] = (
             f"./conda.{sname}/bin:"
-            + subprocess.check_output("echo $PATH", shell=True, env=dict()).decode()
+            + subprocess.check_output("echo $PATH", shell=True, env=None).decode()
         )
 
         subprocess.check_call(

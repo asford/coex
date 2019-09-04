@@ -26,29 +26,43 @@ except ImportError:
 
 
 class SectionTimer(object):
+    """Accumulate timers into sections."""
+
     sections = defaultdict(float)  # type: typing.Dict[str, float]
 
     def __init__(self, name):
+        # type: (str) -> None
+        """Start timer adding to given section name."""
         self.name = name
-        self.start = None
-        self.span = None
+        self.start = 0.0
+        self.span = 0.0
 
-    def __enter__(self):
+    def __enter__(self):  # noqa: D
+        # type: () -> SectionTimer
         self.start = time.time()
         return self
 
-    def __exit__(self, *args):
+    def __exit__(self, *args):  # noqa: D
+        # type: (*typing.Any) -> None
         self.span = time.time() - self.start
         self.sections[self.name] += self.span
 
 
 class COEXOptions(object):
+    """Run-time coex options."""
+
     work_dir = "/tmp"
     cleanup = True
     log_level = None
     program_args = []  # type: typing.List[str]
 
     def __init__(self, args=None):
+        # type: (typing.Optional[typing.List[str]]) -> None
+        """Load options from env and/or command line args.
+
+        Args:
+            args: Program arguments, loads sys.argv if None.
+        """
         if args is None:
             args = sys.argv[1:]
 
@@ -94,11 +108,26 @@ class COEXOptions(object):
             setattr(self, k, v)
         self.program_args = program_args
 
-    def __repr__(self):
+    def __repr__(self):  # noqa: D
         return "COEXOptions(%s)" % self.__dict__
 
 
 def resolve_entrypoint(entrypoint, prefix_dir):
+    # type: (str, str) -> str
+    """Resolve coex entrypoint into a executable path.
+
+    Coex entrypoint is either (a) an executable name, resolved in the coex
+    execution environment or (b) a path to an executable, absolute or relative
+    to the usr data prefix.
+
+    Args:
+        entrypoint: coex entrypoint
+        prefix_dir: usr prefix path
+
+    Returns:
+        Executable value, expanded to abs path.
+
+    """
     entrypoint = os.path.expandvars(entrypoint)
 
     if not os.path.dirname(entrypoint):
@@ -113,7 +142,17 @@ def resolve_entrypoint(entrypoint, prefix_dir):
 
 
 def main(__name__, __file__, options):
-    # type: (COEXOptions) -> None
+    # type: (str, str, COEXOptions) -> None
+    """Main bootstrap entrypoint.
+
+    Main bootstrap, unpacks coex and executes entrypoint program.
+
+    Args:
+        __name__: __name__ of main module.
+        __file__: __file__ of main module.
+        options: Initialized COEXOptions.
+
+    """
     with SectionTimer("total"):
         if options.log_level:
             logging.basicConfig(level=logging.getLevelName(options.log_level))

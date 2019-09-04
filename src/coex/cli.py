@@ -20,6 +20,8 @@ logger = logging.getLogger(__name__)
 
 @attr.s()
 class COEXConfig:
+    """Main module global configuration."""
+
     cleanup: bool = attr.ib()
     cache: Path = attr.ib(converter=Path)
 
@@ -34,6 +36,7 @@ pass_config = click.make_pass_decorator(COEXConfig, ensure=True)
 @click.option("--cleanup/--no-cleanup", default=True)
 @click.pass_context
 def cli(ctx, **kwargs):
+    """Top-level command group."""
     logging.basicConfig(level=logging.INFO)
     logging.info("cli %s", kwargs)
     ctx.obj = COEXConfig(**kwargs)
@@ -52,6 +55,8 @@ def cli(ctx, **kwargs):
 @click.option("--output", "-o", type=click.Path(), required=True)
 @click.argument("sources", type=click.Path(exists=True), nargs=-1)
 def create(config: COEXConfig, env_file, entrypoint, output, sources):
+    """Create output .coex from env, entrypoint, and usr sources."""
+
     logger.info("create %s", locals())
     env_file = Path(env_file)
 
@@ -80,7 +85,7 @@ def create(config: COEXConfig, env_file, entrypoint, output, sources):
         )
 
         # Copy zstd binary into bootstrap bin
-        COEXBootstrapBinaries.copy_to(build_root)
+        COEXBootstrapBinaries.copy_to(str(build_root))
 
         # Write a bootstrap configuration object into
         bootstrap_config = COEXBootstrapConfig(entrypoint=entrypoint)

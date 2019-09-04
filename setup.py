@@ -8,13 +8,14 @@ from setuptools import find_packages, setup
 REQUIRES_PYTHON = "~=3.6"
 requires = ["conda>=4.6", "attrs>=18.1", "click=7"]
 requires = []
-extras = {}
+extras = {}  # type: dict
 
 
 here = os.path.abspath(os.path.dirname(__file__))
 
 
 def README():
+    """Load README.md from archive root."""
     return open(os.path.join(here, "README.md")).read()
 
 
