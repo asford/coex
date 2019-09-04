@@ -49,7 +49,7 @@ def test_example_cli(tmp_path: pathlib.Path):
     )
 
     run_env = dict(os.environ)
-    run_env["COEX_LOG_LEVEL"] = "INFO"
+    run_env["COEX_LOG_LEVEL"] = "DEBUG"
 
     # Direct execution as .coex dumps proper versions.
     result = subprocess.check_output(

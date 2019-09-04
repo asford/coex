@@ -11,12 +11,13 @@ S_IXALL = stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
 
 
 class COEXBootstrapBinaries(object):
-    required = ["zstd", "unzip"]
+    required = ["zstd", "unzip", "tar"]
 
-    def __init__(self, zstd, unzip):
+    def __init__(self, zstd, unzip, tar):
         # type: (str) -> None
         self.zstd = zstd
         self.unzip = unzip
+        self.tar = tar
 
     def __repr__(self):
         # type: () -> str
@@ -43,12 +44,20 @@ class COEXBootstrapBinaries(object):
         if not os.path.exists(bindir):
             os.makedirs(bindir)
 
-        binpaths = {b: os.path.join(prefix, "bin", b) for b in cls.required}
+        binpaths = {}
 
-        for b, binpath in binpaths.items():
-            logger.debug("unpack b=%r binpath=%r", b, binpath)
-            with open(binpath, "wb") as of:
-                of.write(pkgutil.get_data(package, os.path.join("bin", b)))
-            os.chmod(binpath, os.stat(binpath).st_mode | S_IXALL)
+        for b in cls.required:
+            pkg_bin = pkgutil.get_data(package, os.path.join("bin", b))
+
+            if pkg_bin:
+                binpath = os.path.join(prefix, "bin", b)
+                logger.debug("unpack b=%r binpath=%r", b, binpath)
+                with open(binpath, "wb") as of:
+                    of.write(pkg_bin)
+                os.chmod(binpath, os.stat(binpath).st_mode | S_IXALL)
+                binpaths[b] = binpath
+            else:
+                logger.debug("system b=%r", b)
+                binpaths[b] = b
 
         return cls(**binpaths)
