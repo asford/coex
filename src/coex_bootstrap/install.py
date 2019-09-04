@@ -141,7 +141,7 @@ def post_extract(prefix):
 
     repodata_record = os.path.join(info_dir, "repodata_record.json")
     if os.path.exists(repodata_record):
-        repodata = json.load(open(repodata_record, "rb"))
+        repodata = json.loads(open(repodata_record, "rb").read().decode("utf-8"))
         if repodata.get("noarch", None) == "python":
             logging.info("unpacking noarch")
             target = glob.glob(os.path.join(prefix, "lib/python*/site-packages"))[0]
