@@ -13,6 +13,7 @@ import coex.bootstrap
 from coex.bootstrap.coex_bootstrap.binaries import COEXBootstrapBinaries
 from coex.bootstrap.coex_bootstrap.config import COEXBootstrapConfig
 from coex.pkg_env import pkg_env
+from coex.pkg_src import pkg_src
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +50,8 @@ def cli(ctx, **kwargs):
 )
 @click.option("--entrypoint", type=str, required=True)
 @click.option("--output", "-o", type=click.Path(), required=True)
-def create(config: COEXConfig, env_file, entrypoint, output):
+@click.argument("sources", type=click.Path(exists=True), nargs=-1)
+def create(config: COEXConfig, env_file, entrypoint, output, sources):
     logger.info("create %s", locals())
     env_file = Path(env_file)
 
@@ -85,6 +87,9 @@ def create(config: COEXConfig, env_file, entrypoint, output):
 
         # Copy env pkgs into coex src
         pkg_env(env_file, build_root, config.cache / "pkgs")
+
+        # Copy src files into coex src
+        pkg_src(sources, build_root)
 
         # Create zipapp archive
         logging.info("create_archive source=%s target=%s", build_root, output)

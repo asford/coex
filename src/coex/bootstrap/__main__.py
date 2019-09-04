@@ -1,5 +1,6 @@
 from __future__ import print_function
 
+from collections import defaultdict
 import argparse
 import logging
 import os
@@ -9,15 +10,19 @@ import subprocess
 import sys
 import time
 from distutils.util import strtobool
+import zipimport
+import pkgutil
 
 from coex_bootstrap.activate import activate_env
 from coex_bootstrap.config import COEXBootstrapConfig
 from coex_bootstrap.binaries import COEXBootstrapBinaries
 from coex_bootstrap.install import post_extract
-from coex_bootstrap.unpack import get_pkgs
+from coex_bootstrap.unpack import ZipPkgs, FilePkgs
 
 
-class Timer(object):
+class SectionTimer(object):
+    sections = defaultdict(float)
+
     def __init__(self, name):
         self.name = name
         self.start = None
@@ -29,7 +34,7 @@ class Timer(object):
 
     def __exit__(self, *args):
         self.span = time.time() - self.start
-        logging.info("%s span=%.3G", self.name, self.span)
+        self.sections[self.name] += self.span
 
 
 class COEXOptions(object):
@@ -88,58 +93,114 @@ class COEXOptions(object):
         return "COEXOptions(%s)" % self.__dict__
 
 
+def get_pkgs(coex_binaries):
+    loader = pkgutil.get_loader(__name__)
+    if isinstance(loader, zipimport.zipimporter):
+        return ZipPkgs(loader.archive, "pkgs/?*").pkgs(coex_binaries)
+    else:
+        return FilePkgs(os.path.dirname(__file__), "pkgs/*").pkgs(coex_binaries)
+
+
+def get_srcs(coex_binaries):
+    loader = pkgutil.get_loader(__name__)
+    if isinstance(loader, zipimport.zipimporter):
+        return ZipPkgs(loader.archive, "srcs/?*").pkgs(coex_binaries)
+    else:
+        return FilePkgs(os.path.dirname(__file__), "srcs/*").pkgs(coex_binaries)
+
+
+def resolve_entrypoint(entrypoint, prefix_dir):
+    entrypoint = os.path.expandvars(entrypoint)
+
+    if not os.path.dirname(entrypoint):
+        # entrypoint is a bare executable name, exec as is
+        return entrypoint
+    elif os.path.isabs(entrypoint):
+        # entrypoint is an absolute path, exec as is
+        return entrypoint
+    else:
+        # entrypoint is a relative path, evaluate wrt the prefix
+        return os.path.join(prefix_dir, entrypoint)
+
+
 def main(options):
     # type: (COEXOptions) -> None
-    if options.log_level:
-        logging.basicConfig(level=logging.getLevelName(options.log_level))
+    with SectionTimer("total"):
+        if options.log_level:
+            logging.basicConfig(level=logging.getLevelName(options.log_level))
 
-    logging.info("options=%s", options)
+        logging.info("options=%s", options)
 
-    config = COEXBootstrapConfig.read_from(package=__name__)
-    logging.info("config=%s", config)
+        config = COEXBootstrapConfig.read_from(package=__name__)
+        logging.info("config=%s", config)
 
-    run_dir = os.path.join(
-        options.work_dir, "%s_%i" % (os.path.basename(__file__), os.getpid())
-    )
-    logging.info("run_dir=%s", run_dir)
-    os.makedirs(run_dir)
+        run_dir = os.path.join(
+            options.work_dir, "%s_%i" % (os.path.basename(__file__), os.getpid())
+        )
+        logging.info("run_dir=%s", run_dir)
+        os.makedirs(run_dir)
 
-    conda_dir = os.path.join(run_dir, "conda")
-    logging.info("run_dir=%s", run_dir)
-    os.makedirs(conda_dir)
+        conda_dir = os.path.join(run_dir, "conda")
+        logging.info("run_dir=%s", run_dir)
+        os.makedirs(conda_dir)
 
+        with SectionTimer("get_binaries"):
+            coex_binaries = COEXBootstrapBinaries.unpack(run_dir, __name__)
 
-    with Timer("get_binaries"):
-        coex_binaries = COEXBootstrapBinaries.unpack(run_dir, __name__)
+        ### Unpack and install conda packages
+        with SectionTimer("get_pkgs"):
+            pkgs = get_pkgs(coex_binaries)
+        logging.debug("pkgs=%s", pkgs)
 
-    with Timer("get_pkgs"):
-        pkgs = get_pkgs(coex_binaries)
-    logging.debug("pkgs=%s", pkgs)
-
-    with Timer("install"):
         # Horrid hack, unpack python first so we can noarch packages
         for p in sorted(
             pkgs, key=lambda v: 0 if v.name.startswith("pkgs/python-") else 1
         ):
-            p.extract(coex_binaries, conda_dir)
+            with SectionTimer("extract"):
+                p.extract(coex_binaries, conda_dir)
 
-            logging.debug("post_extract pkg=%s prefix=%s", p, conda_dir)
-            post_extract(conda_dir)
+            with SectionTimer("post_extract"):
+                logging.debug("post_extract pkg=%s prefix=%s", p, conda_dir)
+                post_extract(conda_dir)
 
-    with Timer("activate"):
-        activate_env(conda_dir)
+        ### Unpack usr packages
+        usr_dir = os.path.join(run_dir, "usr")
+        logging.info("run_dir=%s", run_dir)
+        os.makedirs(usr_dir)
 
-    cmd = [config.entrypoint] + options.program_args
-    logging.info("check_call %s", cmd)
+        with SectionTimer("get_srcs"):
+            srcs = get_srcs(coex_binaries)
+        logging.debug("srcs=%s", pkgs)
+
+        for p in srcs:
+            with SectionTimer("extract"):
+                p.extract(coex_binaries, usr_dir)
+
+        ### Activate the target environment
+        with SectionTimer("activate"):
+            activate_env(conda_dir)
+            os.environ["COEX_USR_PREFIX"] = usr_dir
+            os.environ["COEX_ROOT_PREFIX"] = run_dir
+
+    logging.info("setup_times %r", dict(SectionTimer.sections))
+    SectionTimer.sections.clear()
+
+    cmd = [
+        resolve_entrypoint(config.entrypoint, os.path.join(run_dir, "usr"))
+    ] + options.program_args
+    logging.info("call %s", cmd)
     try:
         subprocess.call(cmd)
     except KeyboardInterrupt:
         pass
     finally:
         if options.cleanup:
-            with Timer("cleanup"):
+            with SectionTimer("cleanup"):
                 logging.info("cleanup run_dir=%s", run_dir)
                 shutil.rmtree(run_dir)
+
+        logging.info("cleanup_times %r", dict(SectionTimer.sections))
+        SectionTimer.sections.clear()
 
 
 if __name__ == "__main__":

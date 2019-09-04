@@ -1,6 +1,5 @@
 import logging
 import os.path
-import shlex
 import shutil
 import subprocess
 from itertools import chain
@@ -17,6 +16,7 @@ from conda.models.records import PackageCacheRecord, PackageRecord
 from conda_env.specs.yaml_file import YamlFileSpec
 
 logger = logging.getLogger(__name__)
+
 
 def pkg_env(environment_file: Path, coex_path: Path, cache_dir: Path) -> None:
 
@@ -85,13 +85,18 @@ def pkg_env(environment_file: Path, coex_path: Path, cache_dir: Path) -> None:
         cache_dir.mkdir(parents=True, exist_ok=True)
 
         if not (cache_dir / pkgname).exists():
-            pkg_cmd = "tar -c -C {} {} | zstd -15 -T0 -f - -o {}".format(
-                shlex.quote(str(extracted_dir)),
-                " ".join(shlex.quote(f.name) for f in extracted_dir.iterdir()),
-                shlex.quote(str(cache_dir / pkgname)),
+            pkg_cmd = (
+                # tar filtered through multithreaded zstd
+                ["tar", "--use-compress-program", "zstd -T0"]
+                # write to archive file
+                + ["-f", str(cache_dir / pkgname)]
+                # chdir to extracted package directory
+                + ["-C", str(extracted_dir)]
+                # and add all package dirs
+                + (["-c"] + [f.name for f in extracted_dir.iterdir()])
             )
             logging.info("packaging: %s", pkg_cmd)
-            subprocess.check_call(pkg_cmd, shell=True)
+            subprocess.check_call(pkg_cmd)
 
         output_path.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(cache_dir / pkgname, output_path / pkgname)

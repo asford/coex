@@ -9,7 +9,7 @@ environments with minimal run-time external dependencies.
 
 ## TLDR
 
-Package an environment `.yml` with an `python` entrypoint:
+Package an environment `.yml`...
 
 ```bash
 $ cat > coex_environment.yml <<EOF
@@ -17,7 +17,11 @@ dependencies:
   - python=3.7.4
   - numpy=1.16.4
 EOF
+```
 
+...with a `python` entrypoint:
+
+```bash
 $ python -m coex create -f coex_environment.yml --entrypoint python -o python.coex
 ```
 
@@ -34,6 +38,28 @@ Type "help", "copyright", "credits" or "license" for more information.
 >>> import numpy
 >>> numpy.version.version
 '1.16.4'
+```
+
+... or with a user script entrypoint:
+
+```bash
+$ (cat > echo_versions && chmod +x echo_versions) <<EOF
+#!/usr/bin/env python
+import sys
+import numpy
+print(sys.version)
+print(numpy.version.version)
+EOF
+
+$ python -m coex create -f coex_environment.yml --entrypoint ./echo_versions -o echo_versions.coex ./echo_versions
+```
+...and execute:
+
+```bash
+$ ./echo_versions.coex
+3.7.4 (default, Aug 13 2019, 15:17:50)
+[Clang 4.0.1 (tags/RELEASE_401/final)]
+1.16.4
 ```
 
 ## Installation
@@ -84,11 +110,11 @@ This currently includes:
 * Platform-specific packages.
 * `noarch:python` packages.
 * Build and execute on linux and macos.
+* Package and execute application and data.
 
 This doesn't, but should, include:
 
 * `post-link` package scripts.
-* Custom application data.
 
 This doesn't include:
 
