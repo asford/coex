@@ -17,7 +17,7 @@ from coex_bootstrap.activate import activate_env
 from coex_bootstrap.config import COEXBootstrapConfig
 from coex_bootstrap.binaries import COEXBootstrapBinaries
 from coex_bootstrap.install import post_extract
-from coex_bootstrap.unpack import ZipPkgs, FilePkgs
+from coex_bootstrap.unpack import zip_pkgs, file_pkgs
 
 try:
     import typing
@@ -135,14 +135,15 @@ def main(__name__, __file__, options):
 
         with SectionTimer("get_binaries"):
             coex_binaries = COEXBootstrapBinaries.unpack(run_dir, __name__)
+            logging.debug("coex_binaries %s", coex_binaries)
 
         ### Unpack and install conda packages
         with SectionTimer("get_pkgs"):
             loader = pkgutil.get_loader(__name__)
             if isinstance(loader, zipimport.zipimporter):
-                pkgs = ZipPkgs(loader.archive, "pkgs/?*").pkgs(coex_binaries)
+                pkgs = zip_pkgs(loader.archive, "pkgs/?*")
             else:
-                pkgs = FilePkgs(os.path.dirname(__file__), "pkgs/*").pkgs(coex_binaries)
+                pkgs = file_pkgs(os.path.dirname(__file__), "pkgs/*")
         logging.debug("pkgs=%s", pkgs)
 
         # Horrid hack, unpack python first so we can noarch packages
@@ -164,9 +165,9 @@ def main(__name__, __file__, options):
         with SectionTimer("get_srcs"):
             loader = pkgutil.get_loader(__name__)
             if isinstance(loader, zipimport.zipimporter):
-                srcs = ZipPkgs(loader.archive, "srcs/?*").pkgs(coex_binaries)
+                srcs = zip_pkgs(loader.archive, "srcs/?*")
             else:
-                srcs = FilePkgs(os.path.dirname(__file__), "srcs/*").pkgs(coex_binaries)
+                srcs = file_pkgs(os.path.dirname(__file__), "srcs/*")
         logging.debug("srcs=%r", srcs)
 
         for p in srcs:
