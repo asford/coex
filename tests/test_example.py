@@ -32,6 +32,13 @@ _dump_version = textwrap.dedent(
     """
 )
 
+_bootstrap_run_envs = {
+    "system": [],
+    "py27": ["python=2.7"],
+    "py35": ["python=3.5"],
+    "py36": ["python=3.6"],
+}
+
 
 def test_example_cli(tmp_path: pathlib.Path):
     tmp_path.cwd
@@ -48,28 +55,41 @@ def test_example_cli(tmp_path: pathlib.Path):
         cwd=tmp_path,
     )
 
-    run_env = dict(os.environ)
-    run_env["COEX_LOG_LEVEL"] = "DEBUG"
-
-    # Direct execution as .coex dumps proper versions.
-    result = subprocess.check_output(
-        ["./python.coex", "dump_version.py"], cwd=tmp_path, env=run_env
-    )
-
-    assert json.loads(result) == _test_versions
-
-    # Unzipped execution dumps proper versions as well.
+    # Unzip for filesystem execution
     subprocess.check_output(
-        ["unzip", "./python.coex", "-d", "python.coex.unzipped"],
-        cwd=tmp_path,
-        env=run_env,
+        ["unzip", "./python.coex", "-d", "python.coex.unzipped"], cwd=tmp_path
     )
 
-    unpacked_result = subprocess.check_output(
-        ["python", "python.coex.unzipped", "dump_version.py"], cwd=tmp_path, env=run_env
-    )
+    for sname, deps in _bootstrap_run_envs.items():
+        # Execute in clean running environment
+        run_env = {}
+        run_env["COEX_LOG_LEVEL"] = "DEBUG"
+        run_env["PATH"] = (
+            f"./conda.{sname}/bin:"
+            + subprocess.check_output("echo $PATH", shell=True, env=dict()).decode()
+        )
 
-    assert json.loads(unpacked_result) == _test_versions
+        subprocess.check_call(
+            f"conda create --yes -p ./conda.{sname} {' '.join(deps)}",
+            shell=True,
+            cwd=tmp_path,
+        )
+
+        # Execution of unzipped .coex dumps proper versions.
+        result = subprocess.check_output(
+            "./python.coex dump_version.py", shell=True, cwd=tmp_path, env=run_env
+        )
+
+        assert json.loads(result) == _test_versions
+
+        unpacked_result = subprocess.check_output(
+            "python python.coex.unzipped dump_version.py",
+            shell=True,
+            cwd=tmp_path,
+            env=run_env,
+        )
+
+        assert json.loads(unpacked_result) == _test_versions
 
 
 def test_example_archive(tmp_path: pathlib.Path):
@@ -93,23 +113,37 @@ def test_example_archive(tmp_path: pathlib.Path):
         cwd=tmp_path,
     )
 
-    run_env = dict(os.environ)
-    run_env["COEX_LOG_LEVEL"] = "INFO"
-
-    # Direct execution as .coex dumps proper versions.
-    result = subprocess.check_output(["./dump_version.coex"], cwd=tmp_path, env=run_env)
-
-    assert json.loads(result) == _test_versions
-
-    # Unzipped execution dumps proper versions as well.
+    # Unzip for filesystem execution
     subprocess.check_output(
         ["unzip", "./dump_version.coex", "-d", "dump_version.coex.unzipped"],
         cwd=tmp_path,
-        env=run_env,
     )
 
-    unpacked_result = subprocess.check_output(
-        ["python", "dump_version.coex.unzipped"], cwd=tmp_path, env=run_env
-    )
+    for sname, deps in _bootstrap_run_envs.items():
+        # Execute in clean running environment
+        run_env = {}
+        run_env["COEX_LOG_LEVEL"] = "DEBUG"
+        run_env["PATH"] = (
+            f"./conda.{sname}/bin:"
+            + subprocess.check_output("echo $PATH", shell=True, env=dict()).decode()
+        )
 
-    assert json.loads(unpacked_result) == _test_versions
+        subprocess.check_call(
+            f"conda create --yes -p ./conda.{sname} {' '.join(deps)}",
+            shell=True,
+            cwd=tmp_path,
+        )
+
+        # Direct execution as .coex dumps proper versions.
+        result = subprocess.check_output(
+            "./dump_version.coex", shell=True, cwd=tmp_path, env=run_env
+        )
+
+        assert json.loads(result) == _test_versions
+
+        # Execution of unzipped .coex dumps proper versions.
+        unpacked_result = subprocess.check_output(
+            "python dump_version.coex.unzipped", shell=True, cwd=tmp_path, env=run_env
+        )
+
+        assert json.loads(unpacked_result) == _test_versions

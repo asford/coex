@@ -9,9 +9,9 @@ from pathlib import Path
 import attr
 import click
 
-import coex.bootstrap
-from coex.bootstrap.coex_bootstrap.binaries import COEXBootstrapBinaries
-from coex.bootstrap.coex_bootstrap.config import COEXBootstrapConfig
+import coex_bootstrap
+from coex_bootstrap.binaries import COEXBootstrapBinaries
+from coex_bootstrap.config import COEXBootstrapConfig
 from coex.pkg_env import pkg_env
 from coex.pkg_src import pkg_src
 
@@ -67,13 +67,16 @@ def create(config: COEXConfig, env_file, entrypoint, output, sources):
         logging.info("start build build_dir=%s", build_dir)
         build_root = build_dir / "root"
 
-        # Copy the bootstrap template into coex src
-        bootstrap_template = Path(coex.bootstrap.__file__).parent
-        logging.info("setup bootstrap bootstrap_path=%s", bootstrap_template)
+        # Copy coex_bootstrap template into coex src
+        coex_bootstrap_path = Path(coex_bootstrap.__file__).parent
+        logging.info("setup coex_bootstrap_path=%s", coex_bootstrap_path)
         shutil.copytree(
-            str(bootstrap_template),
-            str(build_root),
-            ignore=shutil.ignore_patterns("*.pyc", "__pycache__"),
+            str(coex_bootstrap_path),
+            str(build_root / "coex_bootstrap"),
+            ignore=shutil.ignore_patterns("*.pyc", "__pycache__", "__main__.py"),
+        )
+        shutil.copy(
+            str(coex_bootstrap_path / "__main__.py"), str(build_root / "__main__.py")
         )
 
         # Copy zstd binary into bootstrap bin

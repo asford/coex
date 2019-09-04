@@ -48,7 +48,7 @@ class PkgHandle(object):
     def extract(self, coex_binaries, prefix_dir):
 
         untar_cmd = (
-            ["tar"]
+            [coex_binaries.tar]
             # tar filtered through zstd
             # Seeing errors on macos 10.13 image when using --use-compress-program
             # with arguments, consider using a wrapper script if zstd arguments
@@ -66,8 +66,8 @@ class PkgHandle(object):
 
         extract.wait()
         if extract.returncode:
-            raise subprocess.CalledProcessError(extract.returncode, extract.args)
+            raise subprocess.CalledProcessError(extract.returncode, self.extract_cmd)
 
         untar.wait()
         if untar.returncode:
-            raise subprocess.CalledProcessError(untar.returncode, extract.args)
+            raise subprocess.CalledProcessError(untar.returncode, untar_cmd)

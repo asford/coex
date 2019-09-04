@@ -19,9 +19,14 @@ from coex_bootstrap.binaries import COEXBootstrapBinaries
 from coex_bootstrap.install import post_extract
 from coex_bootstrap.unpack import ZipPkgs, FilePkgs
 
+try:
+    import typing
+except ImportError:
+    pass
+
 
 class SectionTimer(object):
-    sections = defaultdict(float)
+    sections = defaultdict(float)  # type: typing.Dict[str, float]
 
     def __init__(self, name):
         self.name = name
@@ -41,7 +46,7 @@ class COEXOptions(object):
     work_dir = "/tmp"
     cleanup = True
     log_level = None
-    program_args = []
+    program_args = []  # type: typing.List[str]
 
     def __init__(self, args=None):
         if args is None:
@@ -93,22 +98,6 @@ class COEXOptions(object):
         return "COEXOptions(%s)" % self.__dict__
 
 
-def get_pkgs(coex_binaries):
-    loader = pkgutil.get_loader(__name__)
-    if isinstance(loader, zipimport.zipimporter):
-        return ZipPkgs(loader.archive, "pkgs/?*").pkgs(coex_binaries)
-    else:
-        return FilePkgs(os.path.dirname(__file__), "pkgs/*").pkgs(coex_binaries)
-
-
-def get_srcs(coex_binaries):
-    loader = pkgutil.get_loader(__name__)
-    if isinstance(loader, zipimport.zipimporter):
-        return ZipPkgs(loader.archive, "srcs/?*").pkgs(coex_binaries)
-    else:
-        return FilePkgs(os.path.dirname(__file__), "srcs/*").pkgs(coex_binaries)
-
-
 def resolve_entrypoint(entrypoint, prefix_dir):
     entrypoint = os.path.expandvars(entrypoint)
 
@@ -123,7 +112,7 @@ def resolve_entrypoint(entrypoint, prefix_dir):
         return os.path.join(prefix_dir, entrypoint)
 
 
-def main(options):
+def main(__name__, __file__, options):
     # type: (COEXOptions) -> None
     with SectionTimer("total"):
         if options.log_level:
@@ -149,7 +138,11 @@ def main(options):
 
         ### Unpack and install conda packages
         with SectionTimer("get_pkgs"):
-            pkgs = get_pkgs(coex_binaries)
+            loader = pkgutil.get_loader(__name__)
+            if isinstance(loader, zipimport.zipimporter):
+                pkgs = ZipPkgs(loader.archive, "pkgs/?*").pkgs(coex_binaries)
+            else:
+                pkgs = FilePkgs(os.path.dirname(__file__), "pkgs/*").pkgs(coex_binaries)
         logging.debug("pkgs=%s", pkgs)
 
         # Horrid hack, unpack python first so we can noarch packages
@@ -169,8 +162,12 @@ def main(options):
         os.makedirs(usr_dir)
 
         with SectionTimer("get_srcs"):
-            srcs = get_srcs(coex_binaries)
-        logging.debug("srcs=%s", pkgs)
+            loader = pkgutil.get_loader(__name__)
+            if isinstance(loader, zipimport.zipimporter):
+                srcs = ZipPkgs(loader.archive, "srcs/?*").pkgs(coex_binaries)
+            else:
+                srcs = FilePkgs(os.path.dirname(__file__), "srcs/*").pkgs(coex_binaries)
+        logging.debug("srcs=%r", srcs)
 
         for p in srcs:
             with SectionTimer("extract"):
@@ -201,8 +198,3 @@ def main(options):
 
         logging.info("cleanup_times %r", dict(SectionTimer.sections))
         SectionTimer.sections.clear()
-
-
-if __name__ == "__main__":
-    options = COEXOptions()
-    main(options)

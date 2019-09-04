@@ -14,7 +14,7 @@ class COEXBootstrapBinaries(object):
     required = ["zstd", "unzip", "tar"]
 
     def __init__(self, zstd, unzip, tar):
-        # type: (str) -> None
+        # type: (str, str, str) -> None
         self.zstd = zstd
         self.unzip = unzip
         self.tar = tar
@@ -38,8 +38,8 @@ class COEXBootstrapBinaries(object):
 
     @classmethod
     def unpack(cls, prefix=None, package=None):
-        logger.info("unpack prefix=%r package=%r", prefix, package)
         # type: (str, str) -> COEXBootstrapBinaries
+        logger.info("unpack prefix=%r package=%r", prefix, package)
         bindir = os.path.join(prefix, "bin")
         if not os.path.exists(bindir):
             os.makedirs(bindir)
