@@ -51,3 +51,9 @@ jobs:
       tox -e py36-conda46
     displayName: Tox py36-conda46
     continueOnError: true
+
+  - bash: |
+      source activate tox
+      tox -e lint
+    displayName: Tox lint
+    continueOnError: true
