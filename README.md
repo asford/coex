@@ -1,7 +1,7 @@
 # COEX
 
-[![Build Status](https://dev.azure.com/asewallford/asewallford/_apis/build/status/asford.coex?branchName=master)](https://dev.azure.com/asewallford/asewallford/_build/latest?definitionId=1&branchName=master)
-[![Code Style: Black](https://github.com/psf/black)](https://img.shields.io/badge/code%20style-black-000000.svg)
+[![Build Status](https://img.shields.io/azure-devops/build/asewallford/ce058e44-7619-4a00-8e79-8ab4b3166157/1/master?label=pipelines)](https://dev.azure.com/asewallford/asewallford/_build/latest?definitionId=1&branchName=master)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 
 coex is a utility for generating coex (COnda EXecutable) files, which are
